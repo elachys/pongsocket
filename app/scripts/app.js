@@ -1,19 +1,12 @@
 /*global define */
+/*global $:false */
+/*global Two:false */
+'use strict';
 define([], function () {
-    'use strict';
-
     return '\'Allo \'Allo!';
 });
-var hasWebgl = (function() {
-      try { return !!window.WebGLRenderingContext
-        && !!(document.createElement('canvas').getContext('webgl')
-        || document.createElement('canvas').getContext('experimental-webgl'));
-      } catch(e) {
-        return false;
-      }
-    })();
 
-  var App = {
+var App = {
     ball: null,
     player1: null,
     player2: null,
@@ -23,6 +16,12 @@ var hasWebgl = (function() {
     batWidth: 30,
     two: null,
 
+    hasWebgl: function(){
+        try { return !!window.WebGLRenderingContext && !!(document.createElement('canvas').getContext('webgl') || document.createElement('canvas').getContext('experimental-webgl'));
+            } catch(e) {
+            return false;
+        }
+    },
     drawBall: function(){
         this.ball = this.two.makeCircle(72, 100, this.ballRadius);
         this.ball.fill = '#FF8000';
@@ -47,16 +46,16 @@ var hasWebgl = (function() {
             } else {
                 this.movingx = -4;
             }
-        }
+        };
         player.endEvent = function(){
             this.movingx = 0;
-        }
+        };
         player.update = function(){
             this.translation.set(
                 this.translation.x,
                 this.translation.y + this.movingx
             );
-        }
+        };
         return player;
 
     },
@@ -126,7 +125,7 @@ var hasWebgl = (function() {
     },
     endGame: function(){
         if(this.two.playing){
-            alert('game over');
+            window.alert('game over');
             this.two.pause();
         }
     },
@@ -135,20 +134,19 @@ var hasWebgl = (function() {
             this.ball.translation.x + this.ball.xVelocity,
             this.ball.translation.y + this.ball.yVelocity
         );
-        
     },
     init: function(){
         this.two = new Two({
             fullscreen: true,
-            type: hasWebgl ? Two.Types.webgl : Two.Types.canvas,
+            type: this.hasWebgl() ? Two.Types.webgl : Two.Types.canvas,
         }).appendTo(document.body);
 
         this.drawBall();
         this.initPlayers();
 
-        window.setInterval(function(){ 
+        window.setInterval(function(){
             App.collisionBall();
-             }, 50);
+        }, 50);
 
         window.setInterval(function(){
             App.getCurrentPlayer().update();
@@ -158,4 +156,4 @@ var hasWebgl = (function() {
         this.two.bind('update', function(){ App.update(); } ).play();
 
     }
-  }
+};
