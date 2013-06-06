@@ -2,11 +2,11 @@
 /*global $:false */
 /*global Two:false */
 'use strict';
-define([], function () {
-    return '\'Allo \'Allo!';
-});
+var App, lastkeypressed = false;
 
-var App = {
+define(['jquery','two', 'socketio'], function () {
+
+App = {
     ball: null,
     player1: null,
     player2: null,
@@ -15,6 +15,8 @@ var App = {
     ballRadius: 50,
     batWidth: 30,
     two: null,
+    socket: null,
+    player1Id: null,
 
     hasWebgl: function(){
         try { return !!window.WebGLRenderingContext && !!(document.createElement('canvas').getContext('webgl') || document.createElement('canvas').getContext('experimental-webgl'));
@@ -65,18 +67,43 @@ var App = {
         this.initPlayerEvents(this.player1);
     },
     initPlayerEvents: function (player){
+        $(document).focus();
         $(document).keydown(function(e){
-            if(e.which === 40 || e.which === 38){
+            if(e.which === 40 || e.which === 38)
+                e.preventDefault();
+
+            if(e.which != window.lastkeypressed && (e.which === 40 || e.which === 38)){
+                window.lastkeypressed = e.which;
                 player.beginEvent(e.which);
+                App.channelSendMessage('/move', {
+                    'direction': App.getCurrentPlayer().movingx,
+                    'action': 'begin',
+                    'player': App.getCurrentPlayerNumber()
+                });
             }
         }).keyup(function(e){
+            window.lastkeypressed = false;
             if(e.which === 40 || e.which === 38){
                 player.endEvent(e.which);
+                App.channelSendMessage('/move', {
+                    'direction': App.getCurrentPlayer().movingx,
+                    'action': 'end',
+                    'player': App.getCurrentPlayerNumber()
+                });
+
+
+                e.preventDefault();
             }
         });
 
     },
+    getCurrentPlayerNumber: function(){
+            return (App.player1Id == state.me)? 1 : 2;
+    },
     getCurrentPlayer: function(){
+        if(this.getCurrentPlayerNumber() === 2){
+            return this.player2;
+        }
         return this.player1;
     },
     collisionBall: function(){
@@ -135,7 +162,45 @@ var App = {
             this.ball.translation.y + this.ball.yVelocity
         );
     },
+    directionToKey: function(dir){
+        return (dir > 0) ? 40: 38;
+    },
+    channelSendMessage: function(path, opt){
+        var params =  {'gamekey': state.game_key, 'me': state.me};
+        if(opt){
+            jQuery.extend(params, opt);
+        }
+        $.post(path, params);
+    },
+    channelOnMessage: function(m){
+
+        var data = JSON.parse(m.data);
+        //console.log(m);
+        if(m.initial){
+            App.player1Id = data.player1ID;
+            return;
+        }
+
+        //console.log(data);
+        var current = App.getCurrentPlayerNumber();
+
+        if(current === 1){
+            switch(data.Player2Action){
+                case 'begin':
+                    App.player2.beginEvent(App.directionToKey(data.Player2Direction));
+                break;
+                case 'end':
+                    App.player2.endEvent();
+                break;
+            }
+        }
+    },
     init: function(){
+        this.socket = io.connect();
+        this.socket.on('news', function (data) {
+            console.log(data);
+        });
+
         this.two = new Two({
             fullscreen: true,
             type: this.hasWebgl() ? Two.Types.webgl : Two.Types.canvas,
@@ -149,11 +214,13 @@ var App = {
         }, 50);
 
         window.setInterval(function(){
-            App.getCurrentPlayer().update();
+                App.player1.update();
+                App.player2.update();
         }, 40);
 
 
         this.two.bind('update', function(){ App.update(); } ).play();
-
     }
 };
+
+});
