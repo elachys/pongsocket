@@ -2,7 +2,9 @@
 /*global $:false */
 /*global Two:false */
 'use strict';
-var App, lastkeypressed = false;
+var App
+ , lastkeypressed = false
+ , state = {game_key: 'sdfnls', me: 'fmsldfmlsfs'};
 
 define(['jquery','two', 'socketio'], function () {
 
@@ -75,7 +77,7 @@ App = {
             if(e.which != window.lastkeypressed && (e.which === 40 || e.which === 38)){
                 window.lastkeypressed = e.which;
                 player.beginEvent(e.which);
-                App.channelSendMessage('/move', {
+                App.channelSendMessage('move', {
                     'direction': App.getCurrentPlayer().movingx,
                     'action': 'begin',
                     'player': App.getCurrentPlayerNumber()
@@ -85,7 +87,7 @@ App = {
             window.lastkeypressed = false;
             if(e.which === 40 || e.which === 38){
                 player.endEvent(e.which);
-                App.channelSendMessage('/move', {
+                App.channelSendMessage('move', {
                     'direction': App.getCurrentPlayer().movingx,
                     'action': 'end',
                     'player': App.getCurrentPlayerNumber()
@@ -166,11 +168,12 @@ App = {
         return (dir > 0) ? 40: 38;
     },
     channelSendMessage: function(path, opt){
+        console.log('sending message:' + path);
         var params =  {'gamekey': state.game_key, 'me': state.me};
         if(opt){
             jQuery.extend(params, opt);
         }
-        $.post(path, params);
+        this.socket.emit(path, params);
     },
     channelOnMessage: function(m){
 
@@ -197,7 +200,7 @@ App = {
     },
     init: function(){
         this.socket = io.connect();
-        this.socket.on('news', function (data) {
+        this.socket.on('connect', function (data) {
             console.log(data);
         });
 
