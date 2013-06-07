@@ -27,5 +27,7 @@ require(['jquery', 'bootstrap', 'two', 'socketio', 'app'], function (app, $) {
     // use app here
 
     //console.log('Running jQuery %s', $().jquery);
-    App.init();
+    jQuery(function(){
+        App.init();
+    });
 });

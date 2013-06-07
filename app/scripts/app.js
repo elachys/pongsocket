@@ -3,8 +3,7 @@
 /*global Two:false */
 'use strict';
 var App
- , lastkeypressed = false
- , state = {game_key: 'sdfnls', me: 'fmsldfmlsfs'};
+ , lastkeypressed = false;
 
 define(['jquery','two', 'socketio'], function () {
 
@@ -18,7 +17,8 @@ App = {
     batWidth: 30,
     two: null,
     socket: null,
-    player1Id: null,
+    room: null,
+    me: null,
 
     hasWebgl: function(){
         try { return !!window.WebGLRenderingContext && !!(document.createElement('canvas').getContext('webgl') || document.createElement('canvas').getContext('experimental-webgl'));
@@ -66,7 +66,7 @@ App = {
     initPlayers: function(){
         this.player1 = this.drawPlayer(this.batWidth/2, this.height/2);
         this.player2 = this.drawPlayer(this.width - (this.batWidth/2), this.height/2);
-        this.initPlayerEvents(this.player1);
+        this.initPlayerEvents();
     },
     initPlayerEvents: function (player){
         $(document).focus();
@@ -76,17 +76,18 @@ App = {
 
             if(e.which != window.lastkeypressed && (e.which === 40 || e.which === 38)){
                 window.lastkeypressed = e.which;
-                player.beginEvent(e.which);
+                App.getCurrentPlayer().beginEvent(e.which);
                 App.channelSendMessage('move', {
                     'direction': App.getCurrentPlayer().movingx,
                     'action': 'begin',
-                    'player': App.getCurrentPlayerNumber()
+                    'player': App.getCurrentPlayerNumber(),
+                    'room': App.room
                 });
             }
         }).keyup(function(e){
             window.lastkeypressed = false;
             if(e.which === 40 || e.which === 38){
-                player.endEvent(e.which);
+                App.getCurrentPlayer().endEvent(e.which);
                 App.channelSendMessage('move', {
                     'direction': App.getCurrentPlayer().movingx,
                     'action': 'end',
@@ -100,13 +101,13 @@ App = {
 
     },
     getCurrentPlayerNumber: function(){
-            return (App.player1Id == state.me)? 1 : 2;
+        return App.me;
     },
     getCurrentPlayer: function(){
-        if(this.getCurrentPlayerNumber() === 2){
-            return this.player2;
+        if(App.getCurrentPlayerNumber() == 2){
+            return App.player2;
         }
-        return this.player1;
+        return App.player1;
     },
     collisionBall: function(){
 
@@ -118,7 +119,7 @@ App = {
         }
 
         if(bounds.right > this.width || bounds.left < 0) {
-            this.endGame();
+            //this.endGame();
         }
 
         //hit player bats
@@ -168,46 +169,48 @@ App = {
         return (dir > 0) ? 40: 38;
     },
     channelSendMessage: function(path, opt){
-        console.log('sending message:' + path);
-        var params =  {'gamekey': state.game_key, 'me': state.me};
+        var params =  {'room': App.room, 'me': App.me};
         if(opt){
             jQuery.extend(params, opt);
         }
-        this.socket.emit(path, params);
+        App.socket.emit(path, params);
     },
     channelOnMessage: function(m){
 
-        var data = JSON.parse(m.data);
-        //console.log(m);
-        if(m.initial){
-            App.player1Id = data.player1ID;
+
+        var data = m.msg.data;
+        console.log(m);
+        var current = App.getCurrentPlayerNumber();
+        if(data.Player === current){
             return;
         }
+        console.log('a');
+        var otherPlayer = (current === 2) ? 1 : 2;
 
-        //console.log(data);
-        var current = App.getCurrentPlayerNumber();
-
-        if(current === 1){
-            switch(data.Player2Action){
-                case 'begin':
-                    App.player2.beginEvent(App.directionToKey(data.Player2Direction));
-                break;
-                case 'end':
-                    App.player2.endEvent();
-                break;
-            }
-        }
+        console.log('App.player' + otherPlayer + '.' + data.PlayerAction + 'Event(App.directionToKey(' + data.PlayerDirection + '));');
+        eval('App.player' + otherPlayer + '.' + data.PlayerAction + 'Event(App.directionToKey(' + data.PlayerDirection + '));');
+    },
+    indicateRoom: function(room){
+        $('body').prepend('<p>You are in room: <a href="' + window.location.origin + '/?room=' + room + '">' + room + '</a></p>');
     },
     init: function(){
-        this.socket = io.connect();
-        this.socket.on('connect', function (data) {
+        App.socket = io.connect('http://localhost:3000');
+        App.socket.on('connect', function (data) {
             console.log(data);
+        });
+        App.socket.on('begin', function(data){
+            App.channelOnMessage(data);
+        });
+        App.socket.on('end', function(data){
+            App.channelOnMessage(data);
         });
 
         this.two = new Two({
-            fullscreen: true,
+            fullscreen: false,
+            width: App.width,
+            height: App.height, 
             type: this.hasWebgl() ? Two.Types.webgl : Two.Types.canvas,
-        }).appendTo(document.body);
+        }).appendTo(document.getElementById('canvas'));
 
         this.drawBall();
         this.initPlayers();
@@ -223,6 +226,16 @@ App = {
 
 
         this.two.bind('update', function(){ App.update(); } ).play();
+        var room = window.location.search.match(/\?room\=([a-z0-9]*)/);
+
+        if(room) {
+            App.room = room[1];
+            App.me = 2;
+        } else {
+            App.room = Math.floor(Math.random()*1111);
+            App.indicateRoom(App.room);
+            App.me = 1;
+        }
     }
 };
 
