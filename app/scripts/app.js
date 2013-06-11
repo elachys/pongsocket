@@ -199,6 +199,8 @@ App = {
     },
     sartGame: function(){
         console.log('begin game');
+        this.two.bind('update', function(){ App.update(); } ).play();
+
     },
     joinedRoom: function(data){
         console.log('player: ' + data + ' joined room:' + SocketGamer.room);
@@ -226,14 +228,14 @@ App = {
 
     init: function(){
         App.initSockets();
-/*
+
         this.two = new Two({
             fullscreen: false,
             width: App.width,
             height: App.height, 
             type: this.hasWebgl() ? Two.Types.webgl : Two.Types.canvas,
         }).appendTo(document.getElementById('canvas'));
-/*
+
         this.drawBall();
         this.initPlayers();
 
@@ -245,9 +247,6 @@ App = {
                 App.player1.update();
                 App.player2.update();
         }, 40);
-*/
-
-        //this.two.bind('update', function(){ App.update(); } ).play();
 
     }
 };
