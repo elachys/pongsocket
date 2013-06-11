@@ -5,7 +5,7 @@
 var App
  , lastkeypressed = false;
 
-define(['jquery','two', 'socketio'], function () {
+define(['jquery','two', 'socketio', 'socketgamer'], function () {
 
 App = {
     ball: null,
@@ -177,7 +177,6 @@ App = {
     },
     channelOnMessage: function(m){
 
-
         var data = m.msg.data;
         console.log(m);
         var current = App.getCurrentPlayerNumber();
@@ -187,31 +186,54 @@ App = {
         console.log('a');
         var otherPlayer = (current === 2) ? 1 : 2;
 
-        console.log('App.player' + otherPlayer + '.' + data.PlayerAction + 'Event(App.directionToKey(' + data.PlayerDirection + '));');
         eval('App.player' + otherPlayer + '.' + data.PlayerAction + 'Event(App.directionToKey(' + data.PlayerDirection + '));');
     },
     indicateRoom: function(room){
         $('body').prepend('<p>You are in room: <a href="' + window.location.origin + '/?room=' + room + '">' + room + '</a></p>');
     },
-    init: function(){
-        App.socket = io.connect('http://localhost:3000');
-        App.socket.on('connect', function (data) {
-            console.log(data);
-        });
-        App.socket.on('begin', function(data){
-            App.channelOnMessage(data);
-        });
-        App.socket.on('end', function(data){
-            App.channelOnMessage(data);
-        });
+    requestRoom: function(){
+        //App.channelSendMessage('requestroom');
+    },
+    roomReady: function(){
+        SocketGamer.sendReady(App.sartGame);
+    },
+    sartGame: function(){
+        console.log('begin game');
+    },
+    joinedRoom: function(data){
+        console.log('player: ' + data + ' joined room:' + SocketGamer.room);
+        if(!App.me){
+            App.me = data;
+        }
+    },
+    leftRoom: function(data){
+        console.log('player: ' + data + 'left the room');
+    },
+    /* 
+    * if we have a room, join it.
+    * if we don't, make a new room and join it.
+    */
+    initSockets: function(){
+        var room = window.location.search.match(/\?room\=([a-z0-9]*)/)
+        , callback;
+        if(room){
+            callback = function(){ SocketGamer.joinRoom(room[1], App.joinedRoom); };
+        } else {
+            callback = function(){ SocketGamer.requestRoom(App.joinedRoom); };
+        }
+        SocketGamer.init(window.location.origin, callback);
+    },
 
+    init: function(){
+        App.initSockets();
+/*
         this.two = new Two({
             fullscreen: false,
             width: App.width,
             height: App.height, 
             type: this.hasWebgl() ? Two.Types.webgl : Two.Types.canvas,
         }).appendTo(document.getElementById('canvas'));
-
+/*
         this.drawBall();
         this.initPlayers();
 
@@ -223,19 +245,10 @@ App = {
                 App.player1.update();
                 App.player2.update();
         }, 40);
+*/
 
+        //this.two.bind('update', function(){ App.update(); } ).play();
 
-        this.two.bind('update', function(){ App.update(); } ).play();
-        var room = window.location.search.match(/\?room\=([a-z0-9]*)/);
-
-        if(room) {
-            App.room = room[1];
-            App.me = 2;
-        } else {
-            App.room = Math.floor(Math.random()*1111);
-            App.indicateRoom(App.room);
-            App.me = 1;
-        }
     }
 };
 
