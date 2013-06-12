@@ -199,7 +199,7 @@ App = {
     },
     sartGame: function(){
         console.log('begin game');
-        this.two.bind('update', function(){ App.update(); } ).play();
+        App.two.bind('update', function(){ App.update(); } ).play();
 
     },
     joinedRoom: function(data){
