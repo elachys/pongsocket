@@ -11,12 +11,23 @@ SocketGamer = {
     room: null,
     callbacks: [],
 
+    listen: function(e, callback){
+        SocketGamer.socket.on(e, function(data){
+            callback(data);
+        });
+    },
+
+    sendPlayerEvent: function(e, params){
+        SocketGamer.socket.emit(e, params);
+    },
+
     sendReady: function(callback){
         SocketGamer.socket.on('gamebegin', function(data){
             callback.call(data);
         });
         SocketGamer.socket.emit('clientready');
     },
+
     requestRoom: function(callback){
         console.log('request room');
         SocketGamer.socket.on('requestedroom', function(data){
@@ -48,13 +59,7 @@ SocketGamer = {
         callback.call(data);
         console.log('connected');
     },
-    /*
-    * enter: callback on user join
-    * exit: callback on user disconnect
-    * ready: callback on user confirm
-    * created: callback on room created (with room id)
-    * connected: when socket is created
-    */
+
     init: function(location, callback){
         SocketGamer.socket = io.connect(location);
 

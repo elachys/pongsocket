@@ -77,7 +77,7 @@ App = {
             if(e.which != window.lastkeypressed && (e.which === 40 || e.which === 38)){
                 window.lastkeypressed = e.which;
                 App.getCurrentPlayer().beginEvent(e.which);
-                App.channelSendMessage('move', {
+                SocketGamer.sendPlayerEvent('move', {
                     'direction': App.getCurrentPlayer().movingx,
                     'action': 'begin',
                     'player': App.getCurrentPlayerNumber(),
@@ -88,12 +88,11 @@ App = {
             window.lastkeypressed = false;
             if(e.which === 40 || e.which === 38){
                 App.getCurrentPlayer().endEvent(e.which);
-                App.channelSendMessage('move', {
+                SocketGamer.sendPlayerEvent('move', {
                     'direction': App.getCurrentPlayer().movingx,
                     'action': 'end',
                     'player': App.getCurrentPlayerNumber()
                 });
-
 
                 e.preventDefault();
             }
@@ -151,7 +150,6 @@ App = {
             this.ball.xVelocity = -Math.abs(this.ball.xVelocity);
             return;
         }
-
     },
     endGame: function(){
         if(this.two.playing){
@@ -168,31 +166,13 @@ App = {
     directionToKey: function(dir){
         return (dir > 0) ? 40: 38;
     },
-    channelSendMessage: function(path, opt){
-        var params =  {'room': App.room, 'me': App.me};
-        if(opt){
-            jQuery.extend(params, opt);
-        }
-        App.socket.emit(path, params);
-    },
-    channelOnMessage: function(m){
-
+    moveMessage: function(m){
         var data = m.msg.data;
-        console.log(m);
-        var current = App.getCurrentPlayerNumber();
-        if(data.Player === current){
-            return;
-        }
-        console.log('a');
-        var otherPlayer = (current === 2) ? 1 : 2;
-
+        var otherPlayer = (App.getCurrentPlayerNumber() === 2) ? 1 : 2;
         eval('App.player' + otherPlayer + '.' + data.PlayerAction + 'Event(App.directionToKey(' + data.PlayerDirection + '));');
     },
     indicateRoom: function(room){
         $('body').prepend('<p>You are in room: <a href="' + window.location.origin + '/?room=' + room + '">' + room + '</a></p>');
-    },
-    requestRoom: function(){
-        //App.channelSendMessage('requestroom');
     },
     roomReady: function(){
         SocketGamer.sendReady(App.sartGame);
@@ -200,7 +180,6 @@ App = {
     sartGame: function(){
         console.log('begin game');
         App.two.bind('update', function(){ App.update(); } ).play();
-
     },
     joinedRoom: function(data){
         console.log('player: ' + data + ' joined room:' + SocketGamer.room);
@@ -224,11 +203,12 @@ App = {
             callback = function(){ SocketGamer.requestRoom(App.joinedRoom); };
         }
         SocketGamer.init(window.location.origin, callback);
+        SocketGamer.listen('msg', App.moveMessage);
+
     },
 
     init: function(){
         App.initSockets();
-
         this.two = new Two({
             fullscreen: false,
             width: App.width,

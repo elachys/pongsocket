@@ -103,8 +103,9 @@ io.sockets.on('connection',function(socket){
     * update move to the other client
     */
     socket.on('move', function(data){
-        io.sockets.in(socket.room).emit(data.action, {msg: 
+        socket.broadcast.to(socket.room).emit('msg', {msg: 
             {data: {
+                Response: 'yes',
                 Player: data.player,
                 PlayerAction: data.action,
                 PlayerDirection: data.direction
