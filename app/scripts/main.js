@@ -1,4 +1,6 @@
 /*global App:false */
+/*global jQuery:false */
+
 require.config({
     paths: {
         jquery: '../bower_components/jquery/jquery',
@@ -22,7 +24,7 @@ require.config({
     }
 });
 
-require(['jquery', 'bootstrap', 'two', 'socketio', 'app'], function (app, $) {
+require(['jquery', 'bootstrap', 'two', 'socketio', 'app'], function () {
     'use strict';
     // use app here
 
