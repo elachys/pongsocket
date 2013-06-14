@@ -172,7 +172,7 @@ App = {
         eval('App.player' + otherPlayer + '.' + data.PlayerAction + 'Event(App.directionToKey(' + data.PlayerDirection + '));');
     },
     indicateRoom: function(room){
-        $('body').prepend('<p>You are in room: <a href="' + window.location.origin + '/?room=' + room + '">' + room + '</a></p>');
+        $('.info').empty().append('<p>You are in room: <a href="' + window.location.origin + '/?room=' + room + '">' + room + '</a></p>');
     },
     roomReady: function(){
         SocketGamer.sendReady(App.sartGame);
@@ -186,6 +186,7 @@ App = {
         if(!App.me){
             App.me = data;
         }
+        App.indicateRoom(SocketGamer.room);
     },
     leftRoom: function(data){
         console.log('player: ' + data + 'left the room');
@@ -208,6 +209,7 @@ App = {
     },
 
     init: function(){
+        $('.ready').click(App.roomReady);
         App.initSockets();
         this.two = new Two({
             fullscreen: false,
